@@ -1,0 +1,44 @@
+version: "3"
+
+services:
+  influxdb:
+    image: influxdb:2.7.10
+    container_name: ${CONTAINER_PREFIX}_influxdb
+    environment:
+      - TZ=${TIMEZONE}
+    ports:
+      - 8082:8082
+      - 8086:8086
+      - 8089:8089
+    volumes:volumes:
+      - ./influxdb/data:/var/lib/influxdb2
+      - ./influxdb/config:/etc/influxdb2
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - backend
+      - frontend
+  telegraf:
+    image: docker.io/telegraf:1.32
+    container_name: ${CONTAINER_PREFIX}_telegraf
+    hostname: ${HOSTNAME}
+    environment:
+      - INFLUX_URL=http://influxdb:8086
+      - TZ=${TIMEZONE}
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro # Mount the Telegraf configuration file
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/hostfs/proc
+    restart: unless-stopped
+    env_file:
+      - .env
+    group_add:
+      - ${DOCKER_GROUP_ID}
+    depends_on:
+      - influxdb
+    network_mode: host
+
+networks:
+  backend:
+  frontend:
